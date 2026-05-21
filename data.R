@@ -22,9 +22,9 @@ subdir <- basename(absolute)
 analyses <- data.frame(Repository=repo, Analysis=subdir)
 
 # Apply QC tests
-checks <- sapply(absolute, qc)
-colnames(checks) <- subdir
-checks <- xtab2taf(checks, "Check")
+checks <- t(sapply(absolute, qc))
+rownames(checks) <- subdir
+checks <- xtab2taf(checks, "Analysis")
 
 # Files
 filenames <- sapply(absolute, function(x)
