@@ -33,7 +33,7 @@ no <- list(boot.exists=not("qc.boot.exists"),
            software.bib.exists=not("qc.software.bib.exists"),
            software.bib.valid=not("qc.software.bib.valid"),
            scripts.exist=not("qc.scripts.exist"),
-           relative.paths=not("qc.relative.paths"))
+           only.relative.paths=not("qc.only.relative.paths"))
 
 # Save failed checks
 saveRDS(no, "model/no.rds")
