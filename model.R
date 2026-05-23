@@ -1,7 +1,8 @@
 # Run analysis, write model results
 
 # Before: checks.csv, files.csv (data)
-# After:  checks.csv, empty.csv, metrics.csv, no.rds, overview.csv (model)
+# After:  annual.csv, checks.csv, empty.csv, metrics.csv, no.rds,
+#         overview.csv, perfect.csv (model)
 
 library(TAF)
 
@@ -20,12 +21,12 @@ not.relevant <- c("dir.exists",                 # all dirs exist
                   "qc.initial.data")            # no boot/data folder
 checks <- checks[!names(checks) %in% not.relevant]
 
-# Count number of analyses passing checks
+# Number of analyses passing checks
 overview <- colSums(taf2xtab(checks))
 overview <- data.frame(Check=names(overview), Yes=overview,
                        No=nrow(checks)-overview, row.names=NULL)
 
-# List failed checks
+# Failed checks
 not <- function(check) checks$Analysis[!checks[check]]
 no <- list(boot.exists=not("qc.boot.exists"),
            data.bib.exists=not("qc.data.bib.exists"),
@@ -40,16 +41,27 @@ no <- list(boot.exists=not("qc.boot.exists"),
 score <- apply(taf2xtab(checks), 1, sum)
 score <- data.frame(Analysis=names(score),
                     Year=as.integer(substring(names(score), 1, 4)),
-                    Checks=score, row.names=NULL)
+                    Score=score, row.names=NULL)
 volume <- aggregate(cbind(Bytes, Lines)~Analysis, files, sum)
 metrics <- merge(score, volume)
 
-# Which analyses seem empty
+# Analyses that seem empty
 empty <- metrics[metrics$Bytes < 2000 | metrics$Lines < 40,]
 
+# Passed all checks
+perfect <- apply(taf2xtab(checks), 1, all)
+perfect <- names(perfect)[perfect]
+perfect <- metrics[metrics$Analysis %in% perfect,]
+
+# Annual summaries
+annual <- aggregate(Analysis~Year+Score, metrics, length)
+names(annual)[names(annual) == "Analysis"] <- "Count"
+
 # Write tables and lists
+write.taf(annual, dir="model")
 write.taf(checks, dir="model")
 write.taf(empty, dir="model")
 write.taf(metrics, dir="model")
 write.taf(overview, dir="model")
+write.taf(perfect, dir="model")
 saveRDS(no, "model/no.rds")
