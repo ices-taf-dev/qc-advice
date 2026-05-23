@@ -1,8 +1,8 @@
 # Run analysis, write model results
 
 # Before: checks.csv, files.csv (data)
-# After:  annual.csv, checks.csv, empty.csv, metrics.csv, no.rds,
-#         overview.csv, perfect.csv (model)
+# After:  annual.csv, broken.csv, checks.csv, empty.csv, good.csv, metrics.csv,
+#         no.rds, overview.csv (model)
 
 library(TAF)
 
@@ -48,10 +48,18 @@ metrics <- merge(score, volume)
 # Analyses that seem empty
 empty <- metrics[metrics$Bytes < 2000 | metrics$Lines < 40,]
 
-# Passed all checks
-perfect <- apply(taf2xtab(checks), 1, all)
-perfect <- names(perfect)[perfect]
-perfect <- metrics[metrics$Analysis %in% perfect,]
+# Passed required checks
+required <- checks
+required$qc.software.bib.exists <- required$qc.software.bib.valid <- NULL
+good <- apply(taf2xtab(required), 1, all)
+good <- names(good)[good]
+good <- metrics[metrics$Analysis %in% good,]
+
+# Broken bib files
+b.data <- checks[checks$qc.data.bib.exists & !checks$qc.data.bib.valid,]
+b.soft <- checks[checks$qc.software.bib.exists & !checks$qc.software.bib.valid,]
+broken <- rep(c("DATA.bib","SOFTWARE.bib"), c(nrow(b.data),nrow(b.soft)))
+broken <- data.frame(Broken=broken, Analysis=c(b.data$Analysis,b.soft$Analysis))
 
 # Annual summaries
 annual <- aggregate(Analysis~Year+Score, metrics, length)
@@ -59,9 +67,10 @@ names(annual)[names(annual) == "Analysis"] <- "Count"
 
 # Write tables and lists
 write.taf(annual, dir="model")
+write.taf(broken, dir="model")
 write.taf(checks, dir="model")
 write.taf(empty, dir="model")
+write.taf(good, dir="model")
 write.taf(metrics, dir="model")
 write.taf(overview, dir="model")
-write.taf(perfect, dir="model")
 saveRDS(no, "model/no.rds")
