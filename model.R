@@ -1,8 +1,9 @@
 # Run analysis, write model results
 
 # Before: checks.csv, files.csv (data)
-# After:  annual.csv, broken.csv, checks.csv, empty.csv, good.csv, metrics.csv,
-#         no.rds, overview.csv (model)
+# After:  annual.csv, broken_bib.csv, checks.csv, checks_relevant.csv,
+#         checks_required.csv, empty.csv, good.csv, metrics.csv, no.rds,
+#         overview.csv (model)
 
 library(TAF)
 
@@ -12,17 +13,23 @@ mkdir("model")
 checks <- read.taf("data/checks.csv")
 files <- read.taf("data/files.csv")
 
-# Remove checks that are not relevant for ices-advice
-not.relevant <- c("dir.exists",                 # all dirs exist
-                  "qc.data.bib.processed",      # DATA.bib not processed
-                  "qc.data.declared",           # no boot/data folder
-                  "qc.software.bib.processed",  # SOFTWARE.bib not processed
-                  "qc.software.declared",       # no boot/software folder
-                  "qc.initial.data")            # no boot/data folder
-checks <- checks[!names(checks) %in% not.relevant]
+# Checks that are relevant for ices-advice
+checks.relevant <- checks
+checks.relevant$dir.exists <- NULL                 # all dirs exist
+checks.relevant$qc.data.bib.processed <- NULL      # DATA.bib not processed
+checks.relevant$qc.data.declared <- NULL           # no boot/data folder
+checks.relevant$qc.software.bib.processed <- NULL  # SOFTWARE.bib not processed
+checks.relevant$qc.software.declared <- NULL       # no boot/software folder
+checks.relevant$qc.initial.data <- NULL            # no boot/data folder
+
+# Checks that can be considered required
+checks.required <- checks.relevant
+checks.required$qc.software.bib.exists <- NULL
+checks.required$qc.software.bib.valid <- NULL
+checks.required$qc.all.scripts.exist <- NULL
 
 # Number of analyses passing checks
-overview <- colSums(taf2xtab(checks))
+overview <- colSums(taf2xtab(checks.relevant))
 overview <- data.frame(Check=names(overview), Yes=overview,
                        No=nrow(checks)-overview, row.names=NULL)
 
@@ -37,8 +44,15 @@ no <- list(boot.exists=not("qc.boot.exists"),
            all.scripts.exist=not("qc.all.scripts.exist"),
            only.relative.paths=not("qc.only.relative.paths"))
 
-# Metrics
-score <- apply(taf2xtab(checks), 1, sum)
+# Broken bib files
+b.data <- checks[checks$qc.data.bib.exists & !checks$qc.data.bib.valid,]
+b.soft <- checks[checks$qc.software.bib.exists & !checks$qc.software.bib.valid,]
+broken.bib <- rep(c("DATA.bib", "SOFTWARE.bib"), c(nrow(b.data), nrow(b.soft)))
+broken.bib <- data.frame(Broken=broken.bib,
+                         Analysis=c(b.data$Analysis, b.soft$Analysis))
+
+# Compile metrics
+score <- apply(taf2xtab(checks.required), 1, sum)
 score <- data.frame(Analysis=names(score),
                     Year=as.integer(substring(names(score), 1, 4)),
                     Score=score, row.names=NULL)
@@ -49,28 +63,22 @@ metrics <- merge(score, volume)
 empty <- metrics[metrics$Bytes < 2000 | metrics$Lines < 40,]
 
 # Passed required checks
-required <- checks
-required$qc.software.bib.exists <- required$qc.software.bib.valid <- NULL
-good <- apply(taf2xtab(required), 1, all)
+good <- apply(taf2xtab(checks.required), 1, all)
 good <- names(good)[good]
 good <- metrics[metrics$Analysis %in% good,]
-
-# Broken bib files
-b.data <- checks[checks$qc.data.bib.exists & !checks$qc.data.bib.valid,]
-b.soft <- checks[checks$qc.software.bib.exists & !checks$qc.software.bib.valid,]
-broken <- rep(c("DATA.bib","SOFTWARE.bib"), c(nrow(b.data),nrow(b.soft)))
-broken <- data.frame(Broken=broken, Analysis=c(b.data$Analysis,b.soft$Analysis))
 
 # Annual summaries
 annual <- aggregate(Analysis~Year+Score, metrics, length)
 names(annual)[names(annual) == "Analysis"] <- "Count"
 
-# Write tables and lists
+# Write tables and list
 write.taf(annual, dir="model")
-write.taf(broken, dir="model")
+write.taf(broken.bib, dir="model")
 write.taf(checks, dir="model")
+write.taf(checks.relevant, dir="model")
+write.taf(checks.required, dir="model")
 write.taf(empty, dir="model")
 write.taf(good, dir="model")
 write.taf(metrics, dir="model")
-write.taf(overview, dir="model")
 saveRDS(no, "model/no.rds")
+write.taf(overview, dir="model")
