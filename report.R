@@ -1,7 +1,7 @@
 # Produce plots and tables for report
 
-# Before: annual.csv, metrics.csv, perfect.csv (output)
-# After:  barchart.png, heatmap.png, metrics.csv, perfect (report)
+# Before: annual.csv, metrics.csv, good.csv (output)
+# After:  barchart.png, good.csv, heatmap.png, metrics.csv (report)
 
 library(TAF)
 library(lattice)
@@ -12,7 +12,7 @@ mkdir("report")
 # Read data
 annual <- read.taf("output/annual.csv")
 metrics <- read.taf("output/metrics.csv")
-perfect <- read.taf("output/perfect.csv")
+good <- read.taf("output/good.csv")
 
 # Lattice barplot
 taf.png("barchart")
@@ -34,9 +34,9 @@ dev.off()
 # Format tables
 metrics$KB <- round(metrics$Bytes / 1024)
 metrics$Bytes <- NULL
-perfect$KB <- round(perfect$Bytes / 1024)
-perfect$Bytes <- NULL
+good$KB <- round(good$Bytes / 1024)
+good$Bytes <- NULL
 
 # Write tables
+write.taf(good, dir="report")
 write.taf(metrics, dir="report")
-write.taf(perfect, dir="report")
