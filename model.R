@@ -27,6 +27,7 @@ checks.required <- checks.relevant
 checks.required$qc.software.bib.exists <- NULL
 checks.required$qc.software.bib.valid <- NULL
 checks.required$qc.all.scripts.exist <- NULL
+checks.required$qc.only.relative.paths <- NULL
 
 # Number of analyses passing checks
 overview <- colSums(taf2xtab(checks.relevant))
