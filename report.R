@@ -1,6 +1,6 @@
 # Produce plots and tables for report
 
-# Before: annual.csv, metrics.csv, good.csv (output)
+# Before: annual.csv, good.csv, metrics.csv (output)
 # After:  barchart.png, good.csv, heatmap.png, metrics.csv (report)
 
 library(TAF)
@@ -11,12 +11,13 @@ mkdir("report")
 
 # Read data
 annual <- read.taf("output/annual.csv")
-metrics <- read.taf("output/metrics.csv")
 good <- read.taf("output/good.csv")
+metrics <- read.taf("output/metrics.csv")
 
 # Lattice barplot
 taf.png("barchart")
-p <- barchart(factor(Score)~Count|factor(Year), annual, layout=c(3,1))
+p <- barchart(factor(Score)~Count|factor(Year), annual, layout=c(3,1),
+              ylab="Score")
 plot(p)
 dev.off()
 
